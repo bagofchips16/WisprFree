@@ -322,26 +322,72 @@ fn single_instance_lock() -> Result<windows::Win32::Foundation::HANDLE> {
 
     // ERROR_ALREADY_EXISTS = 183
     if unsafe { windows::Win32::Foundation::GetLastError() }.0 == 183 {
-        // Show a brief, friendly notification and exit silently
-        let msg = "WisprFree is already running!\n\n\
-                   Look for the green icon in the system tray (bottom-right).\n\
-                   Hold Ctrl+Space to start dictating.\n\n\
-                   Right-click the tray icon → Quit to close it.";
+        // Ask user if they want to replace the running instance (common when updating)
+        let msg = "WisprFree is already running.\n\n\
+                   Do you want to close the old version and start this one?\n\n\
+                   Click YES to restart, or NO to keep the current instance.";
         let wide: Vec<u16> = msg.encode_utf16().chain(std::iter::once(0)).collect();
         let title: Vec<u16> = "WisprFree".encode_utf16().chain(std::iter::once(0)).collect();
-        unsafe {
+        let result = unsafe {
             windows::Win32::UI::WindowsAndMessaging::MessageBoxW(
                 windows::Win32::Foundation::HWND::default(),
                 windows::core::PCWSTR(wide.as_ptr()),
                 windows::core::PCWSTR(title.as_ptr()),
-                windows::Win32::UI::WindowsAndMessaging::MB_OK
-                    | windows::Win32::UI::WindowsAndMessaging::MB_ICONINFORMATION,
-            );
+                windows::Win32::UI::WindowsAndMessaging::MB_YESNO
+                    | windows::Win32::UI::WindowsAndMessaging::MB_ICONQUESTION,
+            )
+        };
+
+        // IDYES = 6
+        if result.0 == 6 {
+            // Kill the old instance and retry the mutex
+            kill_old_instance();
+            std::thread::sleep(std::time::Duration::from_millis(1500));
+
+            // Try acquiring the mutex again
+            let handle = unsafe {
+                CreateMutexW(None, true, PCWSTR(name.as_ptr()))
+                    .context("CreateMutexW failed on retry")?
+            };
+            if unsafe { windows::Win32::Foundation::GetLastError() }.0 == 183 {
+                // Still couldn't acquire — something else is holding it
+                let msg2 = "Could not replace the running instance.\n\
+                            Please manually close WisprFree from the system tray\n\
+                            (right-click the green icon → Quit), then try again.";
+                let wide2: Vec<u16> = msg2.encode_utf16().chain(std::iter::once(0)).collect();
+                let title2: Vec<u16> = "WisprFree".encode_utf16().chain(std::iter::once(0)).collect();
+                unsafe {
+                    windows::Win32::UI::WindowsAndMessaging::MessageBoxW(
+                        windows::Win32::Foundation::HWND::default(),
+                        windows::core::PCWSTR(wide2.as_ptr()),
+                        windows::core::PCWSTR(title2.as_ptr()),
+                        windows::Win32::UI::WindowsAndMessaging::MB_OK
+                            | windows::Win32::UI::WindowsAndMessaging::MB_ICONWARNING,
+                    );
+                }
+                std::process::exit(1);
+            }
+            return Ok(handle);
         }
+
         std::process::exit(0);
     }
 
     Ok(handle)
+}
+
+/// Kill any other running wisprfree.exe processes.
+fn kill_old_instance() {
+    use std::os::windows::process::CommandExt;
+    let current_pid = std::process::id();
+    // Use taskkill to terminate other wisprfree.exe processes
+    let _ = std::process::Command::new("taskkill")
+        .args(["/F", "/IM", "wisprfree.exe"])
+        .creation_flags(0x08000000) // CREATE_NO_WINDOW
+        .output();
+    // Give it a moment to fully terminate
+    std::thread::sleep(std::time::Duration::from_millis(500));
+    log::info!("killed old wisprfree instance (our pid={})", current_pid);
 }
 
 // ── Notifications ─────────────────────────────────────────────────────
