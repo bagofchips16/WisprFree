@@ -33,7 +33,7 @@ mod snippets;
 mod transcriber;
 mod tray;
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result};
 use crossbeam_channel::{select, Receiver, Sender};
 use std::sync::Arc;
 use tempfile::NamedTempFile;
@@ -138,6 +138,9 @@ fn run() -> Result<()> {
     let orch_capture = audio_shared;
     let orch_transcriber = Arc::clone(&transcriber);
     let orch_overlay = overlay::Overlay::new().context("failed to create overlay")?;
+
+    // Show "Ready" notification so the user knows the app has started
+    orch_overlay.set_state(overlay::OverlayState::Ready);
 
     std::thread::Builder::new().name("orchestrator".into()).spawn(move || {
         let mut recording_start: Option<std::time::Instant> = None;
@@ -319,11 +322,23 @@ fn single_instance_lock() -> Result<windows::Win32::Foundation::HANDLE> {
 
     // ERROR_ALREADY_EXISTS = 183
     if unsafe { windows::Win32::Foundation::GetLastError() }.0 == 183 {
-        bail!(
-            "WisprFree is already running.\n\n\
-             Look for the green icon in the system tray (bottom-right).\n\
-             Right-click it to access options or quit."
-        );
+        // Show a brief, friendly notification and exit silently
+        let msg = "WisprFree is already running!\n\n\
+                   Look for the green icon in the system tray (bottom-right).\n\
+                   Hold Ctrl+Space to start dictating.\n\n\
+                   Right-click the tray icon → Quit to close it.";
+        let wide: Vec<u16> = msg.encode_utf16().chain(std::iter::once(0)).collect();
+        let title: Vec<u16> = "WisprFree".encode_utf16().chain(std::iter::once(0)).collect();
+        unsafe {
+            windows::Win32::UI::WindowsAndMessaging::MessageBoxW(
+                windows::Win32::Foundation::HWND::default(),
+                windows::core::PCWSTR(wide.as_ptr()),
+                windows::core::PCWSTR(title.as_ptr()),
+                windows::Win32::UI::WindowsAndMessaging::MB_OK
+                    | windows::Win32::UI::WindowsAndMessaging::MB_ICONINFORMATION,
+            );
+        }
+        std::process::exit(0);
     }
 
     Ok(handle)

@@ -17,6 +17,7 @@ use windows::Win32::UI::WindowsAndMessaging::*;
 /// Commands sent to the overlay thread.
 #[derive(Debug, Clone, Copy)]
 pub enum OverlayState {
+    Ready,
     Recording,
     Processing,
     Done,
@@ -53,8 +54,8 @@ impl Overlay {
 
 // ── Win32 overlay window ──────────────────────────────────────────────
 
-const PILL_WIDTH: i32 = 160;
-const PILL_HEIGHT: i32 = 32;
+const PILL_WIDTH: i32 = 320;
+const PILL_HEIGHT: i32 = 36;
 const WM_OVERLAY_UPDATE: u32 = WM_USER + 1;
 
 /// Colors (BGR format for Win32).
@@ -67,6 +68,7 @@ static CURRENT_STATE: std::sync::atomic::AtomicU8 = std::sync::atomic::AtomicU8:
 
 fn state_to_u8(s: OverlayState) -> u8 {
     match s {
+        OverlayState::Ready => 4,
         OverlayState::Recording => 1,
         OverlayState::Processing => 2,
         OverlayState::Done => 3,
@@ -79,6 +81,7 @@ fn state_color(val: u8) -> u32 {
         1 => COLOR_RED,
         2 => COLOR_YELLOW,
         3 => COLOR_GREEN,
+        4 => COLOR_GREEN,
         _ => 0,
     }
 }
@@ -88,6 +91,7 @@ fn state_text(val: u8) -> &'static str {
         1 => "  \u{25CF}  Recording...",
         2 => "  \u{23F3}  Processing...",
         3 => "  \u{2713}  Done",
+        4 => "  \u{2713}  WisprFree Ready \u{2014} Hold Ctrl+Space to dictate",
         _ => "",
     }
 }
@@ -149,9 +153,11 @@ fn overlay_thread(rx: mpsc::Receiver<OverlayState>) -> Result<()> {
                     let _ = ShowWindow(hwnd, SW_SHOWNOACTIVATE);
                     let _ = InvalidateRect(hwnd, None, true);
 
-                    // Auto-hide "Done" after 1 second
+                    // Auto-hide "Done" after 1 second, "Ready" after 3 seconds
                     if val == 3 {
                         SetTimer(hwnd, 1, 1000, None);
+                    } else if val == 4 {
+                        SetTimer(hwnd, 1, 3000, None);
                     }
                 }
             }
