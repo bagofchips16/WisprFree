@@ -376,18 +376,36 @@ fn single_instance_lock() -> Result<windows::Win32::Foundation::HANDLE> {
     Ok(handle)
 }
 
-/// Kill any other running wisprfree.exe processes.
+/// Kill any other running wisprfree.exe processes (but not ourselves).
 fn kill_old_instance() {
     use std::os::windows::process::CommandExt;
-    let current_pid = std::process::id();
-    // Use taskkill to terminate other wisprfree.exe processes
-    let _ = std::process::Command::new("taskkill")
-        .args(["/F", "/IM", "wisprfree.exe"])
-        .creation_flags(0x08000000) // CREATE_NO_WINDOW
+    let our_pid = std::process::id();
+
+    // Find all wisprfree.exe PIDs, then kill each one except ours
+    let output = std::process::Command::new("wmic")
+        .args(["process", "where", "name='wisprfree.exe'", "get", "ProcessId", "/format:list"])
+        .creation_flags(0x08000000)
         .output();
-    // Give it a moment to fully terminate
+
+    if let Ok(out) = output {
+        let text = String::from_utf8_lossy(&out.stdout);
+        for line in text.lines() {
+            if let Some(pid_str) = line.strip_prefix("ProcessId=") {
+                if let Ok(pid) = pid_str.trim().parse::<u32>() {
+                    if pid != our_pid {
+                        log::info!("killing old wisprfree pid={}", pid);
+                        let _ = std::process::Command::new("taskkill")
+                            .args(["/F", "/PID", &pid.to_string()])
+                            .creation_flags(0x08000000)
+                            .output();
+                    }
+                }
+            }
+        }
+    }
+
     std::thread::sleep(std::time::Duration::from_millis(500));
-    log::info!("killed old wisprfree instance (our pid={})", current_pid);
+    log::info!("old instance cleanup done (our pid={})", our_pid);
 }
 
 // ── Notifications ─────────────────────────────────────────────────────
