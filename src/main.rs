@@ -26,8 +26,8 @@ mod audio;
 mod config;
 mod dictionary;
 mod hotkey;
-mod injector;
 mod overlay;
+mod paster;
 mod punctuation;
 mod snippets;
 mod transcriber;
@@ -189,7 +189,7 @@ fn run() -> Result<()> {
                                             let text = snippet_lib.expand(&text);
                                             log::info!("💬  \"{}\"", text);
 
-                                            if let Err(e) = injector::inject(
+                                            if let Err(e) = paster::inject(
                                                 &text,
                                                 &injection_method,
                                                 clipboard_delay,
@@ -303,9 +303,8 @@ fn single_instance_lock() -> Result<windows::Win32::Foundation::HANDLE> {
     use windows::Win32::System::Threading::CreateMutexW;
     use windows::core::PCWSTR;
 
-    let name: Vec<u16> = "Global\\WisprFree_SingleInstance"
+    let name: Vec<u16> = "WisprFree_SingleInstance\0"
         .encode_utf16()
-        .chain(std::iter::once(0))
         .collect();
 
     let handle = unsafe {

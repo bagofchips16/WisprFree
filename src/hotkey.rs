@@ -9,7 +9,7 @@ use crossbeam_channel::Sender;
 use once_cell::sync::OnceCell;
 use std::sync::atomic::{AtomicBool, Ordering};
 use windows::Win32::Foundation::{LPARAM, LRESULT, WPARAM};
-use windows::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, VK_CONTROL, VK_LCONTROL, VK_RCONTROL};
+use windows::Win32::UI::Input::KeyboardAndMouse::{VK_CONTROL, VK_LCONTROL, VK_RCONTROL};
 use windows::Win32::UI::WindowsAndMessaging::{
     CallNextHookEx, SetWindowsHookExW, UnhookWindowsHookEx, HHOOK, KBDLLHOOKSTRUCT,
     WH_KEYBOARD_LL, WM_KEYDOWN, WM_KEYUP, WM_SYSKEYDOWN, WM_SYSKEYUP,
@@ -30,6 +30,9 @@ struct HotkeyState {
     require_ctrl: bool,
     tx: Sender<HotkeyEvent>,
     is_down: AtomicBool,
+    /// Track Ctrl key state internally from the hook itself,
+    /// avoiding the need for GetAsyncKeyState polling.
+    ctrl_held: AtomicBool,
 }
 
 /// Wrapper to make HHOOK Send+Sync (it's just a handle, safe to share).
@@ -52,6 +55,7 @@ pub fn install(vk_code: u32, require_ctrl: bool, tx: Sender<HotkeyEvent>) -> Res
             require_ctrl,
             tx,
             is_down: AtomicBool::new(false),
+            ctrl_held: AtomicBool::new(false),
         })
         .ok()
         .context("hotkey hook already installed")?;
@@ -84,9 +88,26 @@ unsafe extern "system" fn hook_proc(code: i32, wparam: WPARAM, lparam: LPARAM) -
             let vk = kb.vkCode;
             let msg = wparam.0 as u32;
 
+            // Track Ctrl key state internally
+            let is_ctrl = vk == VK_CONTROL.0 as u32
+                || vk == VK_LCONTROL.0 as u32
+                || vk == VK_RCONTROL.0 as u32;
+
+            if is_ctrl {
+                match msg {
+                    WM_KEYDOWN | WM_SYSKEYDOWN => {
+                        state.ctrl_held.store(true, Ordering::SeqCst);
+                    }
+                    WM_KEYUP | WM_SYSKEYUP => {
+                        state.ctrl_held.store(false, Ordering::SeqCst);
+                    }
+                    _ => {}
+                }
+            }
+
             let is_target_key = vk == state.vk_code;
             let ctrl_ok = if state.require_ctrl {
-                is_ctrl_down()
+                state.ctrl_held.load(Ordering::SeqCst)
             } else {
                 true
             };
@@ -114,13 +135,4 @@ unsafe extern "system" fn hook_proc(code: i32, wparam: WPARAM, lparam: LPARAM) -
         }
     }
     unsafe { CallNextHookEx(None, code, wparam, lparam) }
-}
-
-/// Check if either Ctrl key is currently held.
-fn is_ctrl_down() -> bool {
-    unsafe {
-        GetAsyncKeyState(VK_CONTROL.0 as i32) < 0
-            || GetAsyncKeyState(VK_LCONTROL.0 as i32) < 0
-            || GetAsyncKeyState(VK_RCONTROL.0 as i32) < 0
-    }
 }

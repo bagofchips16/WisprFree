@@ -7,6 +7,7 @@ use anyhow::{bail, Context, Result};
 use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use windows::Win32::System::Threading::CREATE_NO_WINDOW;
 
 /// Wraps a path to the whisper CLI binary and model, invoking it per utterance.
 pub struct Transcriber {
@@ -64,8 +65,8 @@ impl Transcriber {
         let start = std::time::Instant::now();
 
         let mut cmd = Command::new(&self.cli_path);
-        // CREATE_NO_WINDOW (0x08000000) prevents a console window from flashing
-        cmd.creation_flags(0x08000000);
+        // Hide the subprocess console window
+        cmd.creation_flags(CREATE_NO_WINDOW.0);
         cmd.arg("-m").arg(&self.model_path)
             .arg("-f").arg(wav_path)
             .arg("--no-timestamps")

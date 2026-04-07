@@ -310,7 +310,7 @@
     </p>
     <div class="cta-group">
       <a href="https://github.com/bagofchips16/WisprFree/releases/latest" class="btn btn-primary">
-        &#11015; Download for Windows (v0.1.2)
+        &#11015; Download for Windows (v0.1.3)
       </a>
       <a href="https://github.com/bagofchips16/WisprFree" class="btn btn-secondary">
         &#9733; View on GitHub
@@ -398,6 +398,35 @@
           <h3>Fully configurable</h3>
           <p>Change hotkey, model, threads, injection method — all via a simple TOML config file.</p>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SmartScreen note -->
+  <section>
+    <div class="container">
+      <h2 class="section-title">Windows SmartScreen warning?</h2>
+      <p class="section-sub">WisprFree is open-source and safe &mdash; but Windows doesn't know that yet.</p>
+      <div class="demo" style="font-family: 'Inter', sans-serif; text-align: left;">
+        <p style="margin-bottom: 1rem; color: var(--text);">
+          Because WisprFree is a new app without a paid code-signing certificate ($300+/year),
+          Windows SmartScreen may show a <strong>"Windows protected your PC"</strong> dialog.
+        </p>
+        <p style="margin-bottom: 1rem;">
+          <strong style="color: var(--accent);">To proceed:</strong> Click <strong>"More info"</strong> &rarr; <strong>"Run anyway"</strong>.
+          This only happens the first time.
+        </p>
+        <p style="margin-bottom: 1rem;">
+          <strong style="color: var(--accent);">If Defender flags the file:</strong> Add an exclusion via
+          <em>Windows Security &rarr; Virus &amp; threat protection &rarr; Manage settings &rarr; Exclusions</em>
+          &rarr; select the WisprFree folder.
+        </p>
+        <p style="color: var(--text-dim); font-size: 0.85rem;">
+          WisprFree uses a keyboard hook (to detect Ctrl+Space) and clipboard access (to paste text).
+          These are standard techniques used by all voice-to-text and text-expansion tools, but
+          may trigger heuristic AV alerts on unsigned binaries. You can
+          <a href="https://github.com/bagofchips16/WisprFree">inspect every line of source code</a>.
+        </p>
       </div>
     </div>
   </section>

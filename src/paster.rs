@@ -1,10 +1,7 @@
-//! Injects transcribed text at the current cursor position.
+//! Pastes transcribed text at the current cursor position.
 //!
-//! Two strategies:
-//! 1. **Clipboard** (default) – copies text to clipboard, sends Ctrl+V,
-//!    then restores the previous clipboard contents.
-//! 2. **SendInput** – simulates individual `WM_CHAR` key events for each
-//!    character.  More compatible with some games/terminals but slower.
+//! Uses the system clipboard: copies text, sends Ctrl+V, then restores
+//! the previous clipboard contents.
 
 use anyhow::{Context, Result};
 use std::thread;
@@ -16,21 +13,18 @@ use windows::Win32::System::DataExchange::{
 use windows::Win32::System::Memory::{GlobalAlloc, GlobalLock, GlobalUnlock, GMEM_MOVEABLE};
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYBD_EVENT_FLAGS,
-    KEYEVENTF_KEYUP, KEYEVENTF_UNICODE, VK_CONTROL, VK_V,
+    KEYEVENTF_KEYUP, VK_CONTROL, VK_V,
 };
 
 /// CF_UNICODETEXT clipboard format constant.
 const CF_UNICODETEXT: u32 = 13;
 
-/// Inject `text` at the cursor using the chosen method.
-pub fn inject(text: &str, method: &str, restore_delay_ms: u64) -> Result<()> {
+/// Paste `text` at the cursor position via the system clipboard.
+pub fn inject(text: &str, _method: &str, restore_delay_ms: u64) -> Result<()> {
     if text.is_empty() {
         return Ok(());
     }
-    match method {
-        "sendinput" => inject_via_sendinput(text),
-        _ => inject_via_clipboard(text, restore_delay_ms),
-    }
+    inject_via_clipboard(text, restore_delay_ms)
 }
 
 // ── Clipboard strategy ────────────────────────────────────────────────
@@ -130,50 +124,6 @@ fn send_ctrl_v() -> Result<()> {
             anyhow::bail!("SendInput returned {sent}, expected {}", inputs.len());
         }
     }
-    Ok(())
-}
-
-// ── SendInput strategy ────────────────────────────────────────────────
-
-fn inject_via_sendinput(text: &str) -> Result<()> {
-    let mut inputs: Vec<INPUT> = Vec::with_capacity(text.len() * 2);
-
-    for ch in text.encode_utf16() {
-        // Key down
-        inputs.push(INPUT {
-            r#type: INPUT_KEYBOARD,
-            Anonymous: INPUT_0 {
-                ki: KEYBDINPUT {
-                    wVk: windows::Win32::UI::Input::KeyboardAndMouse::VIRTUAL_KEY(0),
-                    wScan: ch,
-                    dwFlags: KEYEVENTF_UNICODE,
-                    time: 0,
-                    dwExtraInfo: 0,
-                },
-            },
-        });
-        // Key up
-        inputs.push(INPUT {
-            r#type: INPUT_KEYBOARD,
-            Anonymous: INPUT_0 {
-                ki: KEYBDINPUT {
-                    wVk: windows::Win32::UI::Input::KeyboardAndMouse::VIRTUAL_KEY(0),
-                    wScan: ch,
-                    dwFlags: KEYEVENTF_UNICODE | KEYEVENTF_KEYUP,
-                    time: 0,
-                    dwExtraInfo: 0,
-                },
-            },
-        });
-    }
-
-    unsafe {
-        let sent = SendInput(&inputs, std::mem::size_of::<INPUT>() as i32);
-        if (sent as usize) != inputs.len() {
-            anyhow::bail!("SendInput returned {sent}, expected {}", inputs.len());
-        }
-    }
-    log::debug!("injected {} chars via SendInput", text.len());
     Ok(())
 }
 

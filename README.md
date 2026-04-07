@@ -45,6 +45,18 @@ WisprFree/
 
 Double-click `wisprfree.exe`. A green icon appears in the system tray.
 
+> **Windows SmartScreen warning?**  
+> Because WisprFree is a new, open-source app without a paid code-signing certificate,
+> Windows may show a "Windows protected your PC" dialog.  
+> Click **"More info"** → **"Run anyway"**.  
+> This only happens the first time. The app is [fully open-source](https://github.com/bagofchips16/WisprFree) — you can inspect every line of code.
+
+> **Microsoft Defender flags the file?**  
+> Some antivirus software may flag WisprFree because it uses a low-level keyboard hook
+> (to detect Ctrl+Space) and clipboard access (to paste text). These are standard techniques
+> used by all voice-to-text and text-expansion tools.  
+> You can add an exclusion: **Windows Security → Virus & threat protection → Manage settings → Exclusions → Add exclusion** → select the WisprFree folder.
+
 ### 3. Dictate
 
 1. Click into any text field (Notepad, browser, Slack, VS Code, etc.)
@@ -89,8 +101,8 @@ alt = false
 shift = false
 
 [injection]
-method = "clipboard"      # "clipboard" or "sendinput"
-clipboard_restore_delay_ms = 50
+method = "clipboard"      # clipboard-based paste
+clipboard_restore_delay_ms = 150
 ```
 
 ### snippets.toml
@@ -167,7 +179,7 @@ cargo run
 ├─────────────────────────────────────────────────────┤
 │  transcription  (per-utterance, on orchestrator)    │
 │   └─ whisper.cpp → punctuation → dictionary → snip  │
-│   └─ inject text via clipboard paste or SendInput   │
+│   └─ inject text via clipboard paste              │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -179,7 +191,7 @@ cargo run
 4. `punctuation::auto_punctuate()` → capitalised & punctuated
 5. `dictionary::correct()` → personal corrections
 6. `snippets::expand()` → trigger word expansion
-7. `injector::inject()` → paste at cursor
+7. `paster::inject()` → paste at cursor
 
 ---
 
@@ -189,7 +201,7 @@ cargo run
 |---------|-----|
 | "whisper model not found" | Download a `.bin` model and place it in `models/` |
 | No audio captured | Check Windows sound settings → default microphone |
-| Text not appearing | Try `method = "sendinput"` in config.toml |
+| Text not appearing | Ensure your cursor is in a text field; check clipboard_restore_delay_ms |
 | High latency | Use `ggml-tiny.en.bin` model; set `threads = 0` |
 | Wrong words | Add corrections to `dictionary.toml`, then reload |
 
