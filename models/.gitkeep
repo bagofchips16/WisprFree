@@ -1,0 +1,7 @@
+# This directory holds Whisper GGML model files.
+# Download from: https://huggingface.co/ggerganov/whisper.cpp/tree/main
+#
+# Recommended for English:
+#   ggml-base.en.bin  (142 MB, fast, good accuracy)
+#
+# Place the .bin file here and update config.toml if needed.

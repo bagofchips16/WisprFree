@@ -1,0 +1,228 @@
+================================================================
+     WisprFree – Step-by-Step Setup Guide (for beginners)
+================================================================
+
+You need to install 3 things, then download a model file,
+then build. Total time: ~20–30 minutes (mostly downloads).
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  STEP 1 of 4:  Install Visual Studio C++ Build Tools
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+WHY:  Rust compiles native code and needs a C/C++ linker.
+      The Whisper speech engine is written in C and must be
+      compiled alongside your Rust code.
+
+HOW:
+  1. Open your browser and go to:
+     https://visualstudio.microsoft.com/visual-cpp-build-tools/
+
+  2. Click "Download Build Tools"
+
+  3. Run the downloaded installer (vs_BuildTools.exe)
+
+  4. In the installer window, check the box:
+     [✓] "Desktop development with C++"
+
+  5. Click "Install" (this downloads ~2-3 GB, takes 10-15 min)
+
+  6. When done, RESTART your computer (or at minimum close
+     and reopen VS Code / any terminals)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  STEP 2 of 4:  Install Rust
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+WHY:  WisprFree is written in Rust. You need the Rust compiler
+      and its package manager (Cargo) to build it.
+
+HOW:
+  1. Open your browser and go to:
+     https://rustup.rs
+
+  2. Click the big "DOWNLOAD RUSTUP-INIT.EXE (64-BIT)" button
+
+  3. Run the downloaded rustup-init.exe
+
+  4. It will show a text menu. Just press ENTER to accept the
+     defaults (option 1 – "Proceed with standard installation")
+
+  5. Wait for it to finish downloading (~200 MB)
+
+  6. Close and reopen your terminal / VS Code so the PATH
+     updates take effect
+
+  7. Verify it worked by opening a NEW terminal and typing:
+     
+     rustc --version
+     
+     You should see something like:  rustc 1.78.0 (...)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  STEP 3 of 4:  Install CMake
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+WHY:  The Whisper C library uses CMake as its build system.
+      Rust's build process calls CMake automatically.
+
+HOW:
+  1. Open your browser and go to:
+     https://cmake.org/download/
+
+  2. Under "Latest Release", find the Windows section and
+     download:  cmake-X.XX.X-windows-x86_64.msi
+
+  3. Run the .msi installer
+
+  4. IMPORTANT: On the install options screen, select:
+     (●) "Add CMake to the system PATH for all users"
+     
+     (This lets Rust find CMake automatically)
+
+  5. Click through and finish the install
+
+  6. Close and reopen your terminal / VS Code
+
+  7. Verify by typing in a NEW terminal:
+     
+     cmake --version
+     
+     You should see something like:  cmake version 3.29.0
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  STEP 4 of 4:  Download the Whisper Model & Build
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+WHY:  WisprFree uses a Whisper AI model to convert your speech
+      to text. The model is a ~142 MB file that runs locally.
+
+HOW:
+
+  A) Download the model:
+
+     1. Go to:
+        https://huggingface.co/ggerganov/whisper.cpp/tree/main
+
+     2. Find and click on:  ggml-base.en.bin
+
+     3. Click "download" (142 MB)
+
+     4. Move/copy the downloaded file to:
+        C:\Users\kkumari\WisprFree\models\ggml-base.en.bin
+
+  B) Build WisprFree:
+
+     1. Open a terminal (in VS Code: Terminal → New Terminal)
+
+     2. Navigate to the project:
+
+        cd C:\Users\kkumari\WisprFree
+
+     3. Build it:
+
+        cargo build --release
+
+        ⏳ The FIRST build takes 5-10 minutes because it
+        compiles Whisper and all dependencies from source.
+        Subsequent builds are fast (<30 seconds).
+
+     4. When it finishes, your .exe is at:
+        C:\Users\kkumari\WisprFree\target\release\wisprfree.exe
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  HOW TO USE IT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  1. Run the exe:
+
+     .\target\release\wisprfree.exe
+
+     → A green icon appears in your system tray (bottom-right
+       of your taskbar, near the clock)
+
+  2. Open ANY app where you type – Notepad, browser, email,
+     Slack, VS Code, Word, anything.
+
+  3. Click where you want text to appear.
+
+  4. HOLD Ctrl+Space and speak naturally.
+
+  5. RELEASE Ctrl+Space.
+
+  6. Your spoken words appear as typed text! ✨
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  CUSTOMIZING (OPTIONAL – DO THIS LATER)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After first run, config files are created here:
+  %APPDATA%\WisprFree\
+
+You can open that folder by right-clicking the tray icon →
+  "Open config folder"
+
+  ┌─────────────────────┬────────────────────────────────┐
+  │ File                │ What it does                   │
+  ├─────────────────────┼────────────────────────────────┤
+  │ config.toml         │ Change hotkey, model, settings │
+  │ snippets.toml       │ Add shortcuts like "my email"  │
+  │                     │ → outputs "you@example.com"    │
+  │ dictionary.toml     │ Fix words Whisper misheards    │
+  └─────────────────────┴────────────────────────────────┘
+
+After editing any file, right-click tray icon → "Reload config"
+(no restart needed).
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  TROUBLESHOOTING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PROBLEM: "cargo" is not recognized
+  → Close ALL terminals and VS Code, reopen, try again.
+  → If still broken, the Rust PATH wasn't set – reinstall
+    Rust from rustup.rs.
+
+PROBLEM: Build fails with "cmake" errors
+  → Make sure you selected "Add to PATH" during CMake install.
+  → Close and reopen terminal after installing CMake.
+
+PROBLEM: Build fails with "link.exe" not found
+  → Visual Studio Build Tools not installed, or you need to
+    restart your computer after installing them.
+
+PROBLEM: "whisper model not found" when running
+  → Make sure ggml-base.en.bin is in the models/ folder:
+    C:\Users\kkumari\WisprFree\models\ggml-base.en.bin
+
+PROBLEM: No audio / nothing happens
+  → Check Windows Settings → Sound → Input → make sure your
+    microphone is set as default and working.
+
+PROBLEM: Text doesn't appear in the app
+  → Try editing config.toml and changing:
+    method = "sendinput"
+    Then right-click tray → Reload config.
+
+PROBLEM: Transcription is slow
+  → Use the smaller model: ggml-tiny.en.bin (75 MB)
+  → Edit config.toml →  model_path = "models/ggml-tiny.en.bin"
+
+================================================================
+  SUMMARY – INSTALL ORDER
+================================================================
+
+  [1] Visual Studio C++ Build Tools  (restart PC after)
+  [2] Rust via rustup.rs
+  [3] CMake (add to PATH!)
+  [4] Download ggml-base.en.bin → models/ folder
+  [5] cargo build --release
+  [6] Run wisprfree.exe → hold Ctrl+Space → speak → done!
+
+================================================================
