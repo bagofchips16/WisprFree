@@ -24,7 +24,7 @@ Works in any app. No cloud, no API, no internet required.
 
 ### 1. Download the latest release
 
-Download `WisprFree-v0.1.0-windows-x64.zip` from  
+Download `WisprFree-v0.1.3-windows-x64.zip` from  
 [**GitHub Releases**](https://github.com/bagofchips16/WisprFree/releases/latest)
 
 Extract the zip. You'll get:
@@ -142,8 +142,8 @@ Right-click the tray icon → **Reload config** to pick up changes without resta
 ### Prerequisites
 
 - [Rust toolchain](https://rustup.rs/) (stable, MSVC target)
-- CMake (for whisper.cpp compilation)
 - Visual Studio C++ Build Tools
+- [whisper.cpp CLI binary](https://github.com/ggerganov/whisper.cpp/releases) (`whisper-cli.exe` + DLLs, placed next to the built exe)
 
 ### Build
 
@@ -153,7 +153,7 @@ cd wisprfree
 cargo build --release
 ```
 
-The binary is at `target/release/wisprfree.exe` (~5 MB + model file).
+The binary is at `target/release/wisprfree.exe` (~2.5 MB). You'll also need to place `whisper-cli.exe`, its DLLs (`ggml.dll`, `ggml-base.dll`, `ggml-cpu.dll`, `whisper.dll`), and a model file (`models/ggml-base.en.bin`) next to the exe.
 
 ### Run in development
 

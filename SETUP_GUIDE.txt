@@ -206,8 +206,9 @@ PROBLEM: No audio / nothing happens
     microphone is set as default and working.
 
 PROBLEM: Text doesn't appear in the app
-  → Try editing config.toml and changing:
-    method = "sendinput"
+  → Make sure your cursor is in a text field.
+  → Try editing config.toml and increasing:
+    clipboard_restore_delay_ms = 200
     Then right-click tray → Reload config.
 
 PROBLEM: Transcription is slow

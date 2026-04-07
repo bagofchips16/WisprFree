@@ -46,10 +46,13 @@ use windows::Win32::UI::WindowsAndMessaging::{
 const MIN_RECORDING_SECS: f32 = 0.5;
 
 fn main() {
+    // Write errors to a log file for debugging (windows_subsystem = "windows" hides stderr)
+    let log_path = std::env::temp_dir().join("wisprfree_debug.log");
     if let Err(e) = run() {
+        let msg = format!("WisprFree failed to start:\n\n{e:#}");
+        let _ = std::fs::write(&log_path, &msg);
         eprintln!("fatal: {e:#}");
         // Show a message box so the user sees the error even without a console.
-        let msg = format!("WisprFree failed to start:\n\n{e:#}");
         let wide: Vec<u16> = msg.encode_utf16().chain(std::iter::once(0)).collect();
         let title: Vec<u16> = "WisprFree Error"
             .encode_utf16()
@@ -66,6 +69,8 @@ fn main() {
         }
         std::process::exit(1);
     }
+    // If we get here, app ran and exited normally — write success marker
+    let _ = std::fs::write(&log_path, "WisprFree exited normally");
 }
 
 fn run() -> Result<()> {
