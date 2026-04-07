@@ -12,7 +12,7 @@ use windows::Win32::Foundation::{LPARAM, LRESULT, WPARAM};
 use windows::Win32::UI::Input::KeyboardAndMouse::{VK_CONTROL, VK_LCONTROL, VK_RCONTROL};
 use windows::Win32::UI::WindowsAndMessaging::{
     CallNextHookEx, SetWindowsHookExW, UnhookWindowsHookEx, HHOOK, KBDLLHOOKSTRUCT,
-    WH_KEYBOARD_LL, WM_KEYDOWN, WM_KEYUP, WM_SYSKEYDOWN, WM_SYSKEYUP,
+    LLKHF_INJECTED, WH_KEYBOARD_LL, WM_KEYDOWN, WM_KEYUP, WM_SYSKEYDOWN, WM_SYSKEYUP,
 };
 
 /// Events emitted by the hotkey system.
@@ -87,6 +87,14 @@ unsafe extern "system" fn hook_proc(code: i32, wparam: WPARAM, lparam: LPARAM) -
             let kb = &*(lparam.0 as *const KBDLLHOOKSTRUCT);
             let vk = kb.vkCode;
             let msg = wparam.0 as u32;
+
+            // Ignore injected/synthetic key events (e.g. from our own
+            // SendInput calls in paster.rs). Without this check, the
+            // Ctrl+V we send to paste text would re-trigger recording.
+            let is_injected = (kb.flags & LLKHF_INJECTED).0 != 0;
+            if is_injected {
+                return CallNextHookEx(None, code, wparam, lparam);
+            }
 
             // Track Ctrl key state internally
             let is_ctrl = vk == VK_CONTROL.0 as u32
