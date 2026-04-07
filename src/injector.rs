@@ -39,16 +39,23 @@ fn inject_via_clipboard(text: &str, restore_delay_ms: u64) -> Result<()> {
     // 1. Save current clipboard
     let old_clipboard = get_clipboard_text();
 
-    // 2. Set our text
+    // 2. Release any held modifier keys first (Ctrl from hotkey)
+    release_modifiers();
+    thread::sleep(Duration::from_millis(50));
+
+    // 3. Set our text
     set_clipboard_text(text)?;
 
-    // 3. Simulate Ctrl+V
+    // 4. Small delay to let clipboard settle
+    thread::sleep(Duration::from_millis(30));
+
+    // 5. Simulate Ctrl+V
     send_ctrl_v()?;
 
-    // 4. Brief delay to let the target app paste
-    thread::sleep(Duration::from_millis(restore_delay_ms.max(30)));
+    // 6. Wait for the target app to process the paste
+    thread::sleep(Duration::from_millis(restore_delay_ms.max(100)));
 
-    // 5. Restore old clipboard
+    // 7. Restore old clipboard
     if let Some(old) = old_clipboard {
         let _ = set_clipboard_text(&old);
     }
@@ -171,6 +178,24 @@ fn inject_via_sendinput(text: &str) -> Result<()> {
 }
 
 // ── shared helpers ────────────────────────────────────────────────────
+
+/// Release Ctrl, Alt, Shift modifier keys so they don't interfere with paste.
+fn release_modifiers() {
+    let modifiers = [
+        VK_CONTROL.0,
+        windows::Win32::UI::Input::KeyboardAndMouse::VK_LCONTROL.0,
+        windows::Win32::UI::Input::KeyboardAndMouse::VK_RCONTROL.0,
+        windows::Win32::UI::Input::KeyboardAndMouse::VK_SHIFT.0,
+        windows::Win32::UI::Input::KeyboardAndMouse::VK_MENU.0,
+    ];
+    let inputs: Vec<INPUT> = modifiers
+        .iter()
+        .map(|&vk| make_key_input(vk, true))
+        .collect();
+    unsafe {
+        let _ = SendInput(&inputs, std::mem::size_of::<INPUT>() as i32);
+    }
+}
 
 fn make_key_input(vk: u16, key_up: bool) -> INPUT {
     let flags = if key_up {

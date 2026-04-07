@@ -1,3 +1,5 @@
+#![windows_subsystem = "windows"]
+
 //! WisprFree – Local, private voice-to-text for Windows.
 //!
 //! Hold **Ctrl+Space** and speak → text appears wherever your cursor is.
@@ -30,13 +32,17 @@ mod snippets;
 mod transcriber;
 mod tray;
 
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use crossbeam_channel::{select, Receiver, Sender};
 use std::sync::Arc;
 use tempfile::NamedTempFile;
 use windows::Win32::UI::WindowsAndMessaging::{
     DispatchMessageW, GetMessageW, TranslateMessage, MSG,
 };
+
+/// Minimum recording duration in seconds. Anything shorter is likely
+/// an accidental tap and would produce garbage transcription.
+const MIN_RECORDING_SECS: f32 = 0.5;
 
 fn main() {
     if let Err(e) = run() {
@@ -62,6 +68,9 @@ fn main() {
 }
 
 fn run() -> Result<()> {
+    // ── Single-instance guard ─────────────────────────────────────────
+    let _mutex = single_instance_lock()?;
+
     // ── Load configuration ────────────────────────────────────────────
     let cfg = config::load().context("failed to load config")?;
 
@@ -123,20 +132,35 @@ fn run() -> Result<()> {
     let orch_capture = audio_shared;
     let orch_transcriber = Arc::clone(&transcriber);
 
-    std::thread::spawn(move || {
+    std::thread::Builder::new().name("orchestrator".into()).spawn(move || {
+        let mut recording_start: Option<std::time::Instant> = None;
+
         loop {
             select! {
                 recv(hk_rx) -> msg => {
                     match msg {
                         Ok(hotkey::HotkeyEvent::PushDown) => {
                             log::info!("⏺  recording…");
+                            recording_start = Some(std::time::Instant::now());
                             orch_capture.start_recording();
                         }
                         Ok(hotkey::HotkeyEvent::PushUp) => {
-                            log::info!("⏹  processing…");
+                            let duration = recording_start
+                                .map(|s| s.elapsed().as_secs_f32())
+                                .unwrap_or(0.0);
+                            recording_start = None;
+
+                            if duration < MIN_RECORDING_SECS {
+                                log::info!("recording too short ({:.1}s < {:.1}s), skipping", duration, MIN_RECORDING_SECS);
+                                let _ = orch_capture.stop_recording();
+                                continue;
+                            }
+
+                            log::info!("⏹  processing… ({:.1}s recorded)", duration);
                             match orch_capture.stop_recording() {
                                 Ok(samples) if samples.is_empty() => {
                                     log::warn!("no audio captured");
+                                    show_notification("WisprFree", "No audio captured. Check your microphone.");
                                 }
                                 Ok(samples) => {
                                     // Write samples to a temp WAV file
@@ -164,9 +188,13 @@ fn run() -> Result<()> {
                                                 clipboard_delay,
                                             ) {
                                                 log::error!("injection failed: {e:#}");
+                                                show_notification("WisprFree", &format!("Text injection failed: {e}"));
                                             }
                                         }
-                                        Err(e) => log::error!("transcription failed: {e:#}"),
+                                        Err(e) => {
+                                            log::error!("transcription failed: {e:#}");
+                                            show_notification("WisprFree", &format!("Transcription failed: {e}"));
+                                        }
                                     }
                                     // Clean up temp WAV
                                     let _ = std::fs::remove_file(&wav_path);
@@ -257,4 +285,53 @@ fn run() -> Result<()> {
     hotkey::uninstall();
     log::info!("WisprFree exiting");
     Ok(())
+}
+
+// ── Single-instance guard ─────────────────────────────────────────────
+
+/// Creates a named mutex. If another instance already holds it, bail.
+fn single_instance_lock() -> Result<windows::Win32::Foundation::HANDLE> {
+    use windows::Win32::System::Threading::CreateMutexW;
+    use windows::core::PCWSTR;
+
+    let name: Vec<u16> = "Global\\WisprFree_SingleInstance"
+        .encode_utf16()
+        .chain(std::iter::once(0))
+        .collect();
+
+    let handle = unsafe {
+        CreateMutexW(None, true, PCWSTR(name.as_ptr()))
+            .context("CreateMutexW failed")?
+    };
+
+    // ERROR_ALREADY_EXISTS = 183
+    if unsafe { windows::Win32::Foundation::GetLastError() }.0 == 183 {
+        bail!(
+            "WisprFree is already running.\n\n\
+             Look for the green icon in the system tray (bottom-right).\n\
+             Right-click it to access options or quit."
+        );
+    }
+
+    Ok(handle)
+}
+
+// ── Notifications ─────────────────────────────────────────────────────
+
+/// Show a simple Windows message box notification from any thread.
+fn show_notification(title: &str, message: &str) {
+    let wide_msg: Vec<u16> = message.encode_utf16().chain(std::iter::once(0)).collect();
+    let wide_title: Vec<u16> = title.encode_utf16().chain(std::iter::once(0)).collect();
+    // Spawn a thread so we don't block the orchestrator
+    std::thread::spawn(move || {
+        unsafe {
+            windows::Win32::UI::WindowsAndMessaging::MessageBoxW(
+                windows::Win32::Foundation::HWND::default(),
+                windows::core::PCWSTR(wide_msg.as_ptr()),
+                windows::core::PCWSTR(wide_title.as_ptr()),
+                windows::Win32::UI::WindowsAndMessaging::MB_OK
+                    | windows::Win32::UI::WindowsAndMessaging::MB_ICONWARNING,
+            );
+        }
+    });
 }

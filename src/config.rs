@@ -130,7 +130,7 @@ impl Default for InjectionConfig {
     fn default() -> Self {
         Self {
             method: "clipboard".into(),
-            clipboard_restore_delay_ms: 50,
+            clipboard_restore_delay_ms: 150,
         }
     }
 }
