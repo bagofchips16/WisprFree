@@ -22,24 +22,23 @@ Works in any app. No cloud, no API, no internet required.
 
 ## Quick Start
 
-### 1. Download a Whisper model
+### 1. Download the latest release
 
-Grab a `.bin` GGML model from  
-<https://huggingface.co/ggerganov/whisper.cpp/tree/main>
+Download `WisprFree-v0.1.0-windows-x64.zip` from  
+[**GitHub Releases**](https://github.com/bagofchips16/WisprFree/releases/latest)
 
-| Model | Size | Speed | Accuracy |
-|-------|------|-------|----------|
-| `ggml-tiny.en.bin` | 75 MB | ⚡ fastest | Good for short commands |
-| `ggml-base.en.bin` | 142 MB | ⚡ fast | **Recommended** |
-| `ggml-small.en.bin` | 466 MB | Moderate | Better accuracy |
-| `ggml-medium.en.bin` | 1.5 GB | Slower | High accuracy |
-
-Place the model file in a `models/` folder next to `wisprfree.exe`:
+Extract the zip. You'll get:
 
 ```
-wisprfree.exe
-models/
-  ggml-base.en.bin
+WisprFree/
+  wisprfree.exe
+  whisper-cli.exe
+  ggml.dll
+  ggml-base.dll
+  ggml-cpu.dll
+  whisper.dll
+  models/
+    ggml-base.en.bin
 ```
 
 ### 2. Run
@@ -137,7 +136,7 @@ Right-click the tray icon → **Reload config** to pick up changes without resta
 ### Build
 
 ```powershell
-git clone https://github.com/your-org/wisprfree.git
+git clone https://github.com/bagofchips16/WisprFree.git
 cd wisprfree
 cargo build --release
 ```
