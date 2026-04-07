@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WisprFree — Free Local Voice-to-Text for Windows</title>
+  <meta name="description" content="Free, open-source, 100% local voice-to-text for Windows. Hold Ctrl+Space, speak, text appears. No cloud, no API, no internet required.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0b;
+      --surface: #141416;
+      --border: #2a2a2e;
+      --text: #e4e4e7;
+      --text-dim: #a1a1aa;
+      --accent: #22c55e;
+      --accent-dim: #16a34a;
+      --accent-glow: rgba(34, 197, 94, 0.15);
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* Hero */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 2rem;
+      position: relative;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 0.4rem 1rem;
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      margin-bottom: 2rem;
+    }
+
+    .badge span { color: var(--accent); font-weight: 600; }
+
+    h1 {
+      font-size: clamp(2.5rem, 6vw, 4.5rem);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      margin-bottom: 1.5rem;
+      max-width: 800px;
+    }
+
+    h1 .highlight {
+      background: linear-gradient(135deg, var(--accent), #4ade80);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      font-size: 1.2rem;
+      color: var(--text-dim);
+      max-width: 560px;
+      margin-bottom: 2.5rem;
+    }
+
+    .cta-group {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.85rem 1.8rem;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      transition: all 0.2s;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #000;
+    }
+
+    .btn-primary:hover {
+      background: #4ade80;
+      text-decoration: none;
+      transform: translateY(-1px);
+      box-shadow: 0 8px 30px rgba(34, 197, 94, 0.3);
+    }
+
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: #1c1c1f;
+      text-decoration: none;
+      transform: translateY(-1px);
+    }
+
+    /* How it works */
+    section { padding: 6rem 2rem; }
+
+    .container { max-width: 1000px; margin: 0 auto; }
+
+    .section-title {
+      text-align: center;
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+
+    .section-sub {
+      text-align: center;
+      color: var(--text-dim);
+      margin-bottom: 4rem;
+      font-size: 1.05rem;
+    }
+
+    /* Steps */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 2rem;
+    }
+
+    .step {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      text-align: center;
+      transition: border-color 0.2s;
+    }
+
+    .step:hover { border-color: var(--accent); }
+
+    .step-num {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: var(--accent-glow);
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 1.2rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1rem;
+    }
+
+    .step h3 {
+      font-size: 1.15rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .step p { color: var(--text-dim); font-size: 0.95rem; }
+
+    /* Features */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .feature {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.8rem;
+      transition: border-color 0.2s;
+    }
+
+    .feature:hover { border-color: var(--accent); }
+
+    .feature-icon {
+      font-size: 1.8rem;
+      margin-bottom: 0.8rem;
+    }
+
+    .feature h3 {
+      font-size: 1.05rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .feature p { color: var(--text-dim); font-size: 0.9rem; }
+
+    /* Demo block */
+    .demo {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      max-width: 600px;
+      margin: 0 auto 4rem;
+      font-family: 'Courier New', monospace;
+      font-size: 0.95rem;
+    }
+
+    .demo-header {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 1.2rem;
+    }
+
+    .demo-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    .demo-dot:nth-child(1) { background: #ef4444; }
+    .demo-dot:nth-child(2) { background: #f59e0b; }
+    .demo-dot:nth-child(3) { background: #22c55e; }
+
+    .demo-line { margin: 0.3rem 0; }
+    .demo-line .dim { color: var(--text-dim); }
+    .demo-line .green { color: var(--accent); }
+    .demo-line .white { color: var(--text); }
+
+    /* Privacy */
+    .privacy-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      text-align: center;
+    }
+
+    .privacy-item {
+      padding: 1.5rem;
+    }
+
+    .privacy-icon {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .privacy-item h3 { font-size: 1rem; margin-bottom: 0.3rem; }
+    .privacy-item p { color: var(--text-dim); font-size: 0.85rem; }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 3rem 2rem;
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 0.9rem;
+    }
+
+    footer a { color: var(--accent); }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .cta-group { flex-direction: column; align-items: center; }
+      section { padding: 4rem 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="badge">
+      <span>&#9679;</span> 100% local &amp; open source
+    </div>
+    <h1>Voice to text,<br><span class="highlight">without the cloud.</span></h1>
+    <p class="subtitle">
+      Hold Ctrl+Space, speak, release. Text appears wherever your cursor is.
+      Works in any app. No internet required. Ever.
+    </p>
+    <div class="cta-group">
+      <a href="https://github.com/bagofchips16/WisprFree/releases/latest" class="btn btn-primary">
+        &#11015; Download for Windows
+      </a>
+      <a href="https://github.com/bagofchips16/WisprFree" class="btn btn-secondary">
+        &#9733; View on GitHub
+      </a>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section>
+    <div class="container">
+      <h2 class="section-title">How it works</h2>
+      <p class="section-sub">Three steps. No signup. No config.</p>
+
+      <div class="demo">
+        <div class="demo-header">
+          <div class="demo-dot"></div>
+          <div class="demo-dot"></div>
+          <div class="demo-dot"></div>
+        </div>
+        <div class="demo-line"><span class="dim">$</span> <span class="white">wisprfree.exe</span></div>
+        <div class="demo-line"><span class="green">&#10003;</span> <span class="dim">ready — hold Ctrl+Space to dictate</span></div>
+        <div class="demo-line"><span class="green">&#9679;</span> <span class="dim">recording…</span></div>
+        <div class="demo-line"><span class="green">&#9632;</span> <span class="dim">processing… (1.2s)</span></div>
+        <div class="demo-line"><span class="green">&#128172;</span> <span class="white">"Hi, how are you doing?"</span></div>
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <h3>Download &amp; extract</h3>
+          <p>Grab the ZIP from GitHub Releases. Unzip anywhere. No installer needed.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <h3>Run</h3>
+          <p>Double-click wisprfree.exe. A green icon appears in your system tray.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <h3>Speak</h3>
+          <p>Hold Ctrl+Space in any text field, speak naturally, release. Done.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section style="background: var(--surface);">
+    <div class="container">
+      <h2 class="section-title">Features</h2>
+      <p class="section-sub">Everything you need. Nothing you don't.</p>
+      <div class="features">
+        <div class="feature">
+          <div class="feature-icon">&#9889;</div>
+          <h3>~1 second latency</h3>
+          <p>Whisper.cpp optimized for fast CPU inference. Speak and see results almost instantly.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">&#128274;</div>
+          <h3>100% private</h3>
+          <p>Audio never leaves your machine. No network connections, no telemetry, no accounts.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">&#127760;</div>
+          <h3>Works everywhere</h3>
+          <p>Notepad, browser, Slack, VS Code, email — any app with a text field.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">&#128218;</div>
+          <h3>Snippet library</h3>
+          <p>Say a trigger word, get a full phrase. Perfect for emails, addresses, canned replies.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">&#128221;</div>
+          <h3>Personal dictionary</h3>
+          <p>Teach it names and terms Whisper mishears. Your corrections, your rules.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">&#128295;</div>
+          <h3>Fully configurable</h3>
+          <p>Change hotkey, model, threads, injection method — all via a simple TOML config file.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Privacy -->
+  <section>
+    <div class="container">
+      <h2 class="section-title">Built for privacy</h2>
+      <p class="section-sub">Your voice stays on your machine. Period.</p>
+      <div class="privacy-grid">
+        <div class="privacy-item">
+          <div class="privacy-icon">&#128581;</div>
+          <h3>No cloud</h3>
+          <p>Zero network requests</p>
+        </div>
+        <div class="privacy-item">
+          <div class="privacy-icon">&#128581;</div>
+          <h3>No API keys</h3>
+          <p>Nothing to sign up for</p>
+        </div>
+        <div class="privacy-item">
+          <div class="privacy-icon">&#128581;</div>
+          <h3>No telemetry</h3>
+          <p>We don't track anything</p>
+        </div>
+        <div class="privacy-item">
+          <div class="privacy-icon">&#128581;</div>
+          <h3>No subscription</h3>
+          <p>Free forever. MIT licensed.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section style="text-align: center;">
+    <div class="container">
+      <h2 class="section-title">Ready to try it?</h2>
+      <p class="section-sub">Download, extract, run. That's it.</p>
+      <div class="cta-group">
+        <a href="https://github.com/bagofchips16/WisprFree/releases/latest" class="btn btn-primary">
+          &#11015; Download for Windows
+        </a>
+        <a href="https://github.com/bagofchips16/WisprFree" class="btn btn-secondary">
+          &#9733; Star on GitHub
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>
+      WisprFree is open source under the
+      <a href="https://github.com/bagofchips16/WisprFree/blob/master/LICENSE">MIT License</a>.
+      Built with Rust &amp; <a href="https://github.com/ggerganov/whisper.cpp">whisper.cpp</a>.
+    </p>
+  </footer>
+
+</body>
+</html>
