@@ -99,18 +99,17 @@ unsafe extern "system" fn hook_proc(code: i32, wparam: WPARAM, lparam: LPARAM) -
                             let _ = state.tx.send(HotkeyEvent::PushDown);
                         }
                     }
-                    WM_KEYUP | WM_SYSKEYUP => {
-                        if state.is_down.swap(false, Ordering::SeqCst) {
-                            let _ = state.tx.send(HotkeyEvent::PushUp);
-                        }
-                    }
                     _ => {}
                 }
             }
 
-            // If the target key goes up without ctrl, also reset state
+            // Fire PushUp whenever the target key goes up AND we were recording,
+            // regardless of whether Ctrl is still held. Users often release
+            // Ctrl slightly before Space.
             if is_target_key && (msg == WM_KEYUP || msg == WM_SYSKEYUP) {
-                state.is_down.store(false, Ordering::SeqCst);
+                if state.is_down.swap(false, Ordering::SeqCst) {
+                    let _ = state.tx.send(HotkeyEvent::PushUp);
+                }
             }
         }
     }

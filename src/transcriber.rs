@@ -4,6 +4,7 @@
 //! avoiding C-binding compatibility issues entirely.
 
 use anyhow::{bail, Context, Result};
+use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -63,6 +64,8 @@ impl Transcriber {
         let start = std::time::Instant::now();
 
         let mut cmd = Command::new(&self.cli_path);
+        // CREATE_NO_WINDOW (0x08000000) prevents a console window from flashing
+        cmd.creation_flags(0x08000000);
         cmd.arg("-m").arg(&self.model_path)
             .arg("-f").arg(wav_path)
             .arg("--no-timestamps")

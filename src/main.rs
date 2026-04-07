@@ -27,6 +27,7 @@ mod config;
 mod dictionary;
 mod hotkey;
 mod injector;
+mod overlay;
 mod punctuation;
 mod snippets;
 mod transcriber;
@@ -131,6 +132,7 @@ fn run() -> Result<()> {
 
     let orch_capture = audio_shared;
     let orch_transcriber = Arc::clone(&transcriber);
+    let orch_overlay = overlay::Overlay::new().context("failed to create overlay")?;
 
     std::thread::Builder::new().name("orchestrator".into()).spawn(move || {
         let mut recording_start: Option<std::time::Instant> = None;
@@ -142,6 +144,7 @@ fn run() -> Result<()> {
                         Ok(hotkey::HotkeyEvent::PushDown) => {
                             log::info!("⏺  recording…");
                             recording_start = Some(std::time::Instant::now());
+                            orch_overlay.set_state(overlay::OverlayState::Recording);
                             orch_capture.start_recording();
                         }
                         Ok(hotkey::HotkeyEvent::PushUp) => {
@@ -153,13 +156,17 @@ fn run() -> Result<()> {
                             if duration < MIN_RECORDING_SECS {
                                 log::info!("recording too short ({:.1}s < {:.1}s), skipping", duration, MIN_RECORDING_SECS);
                                 let _ = orch_capture.stop_recording();
+                                orch_overlay.set_state(overlay::OverlayState::Hidden);
                                 continue;
                             }
+
+                            orch_overlay.set_state(overlay::OverlayState::Processing);
 
                             log::info!("⏹  processing… ({:.1}s recorded)", duration);
                             match orch_capture.stop_recording() {
                                 Ok(samples) if samples.is_empty() => {
                                     log::warn!("no audio captured");
+                                    orch_overlay.set_state(overlay::OverlayState::Hidden);
                                     show_notification("WisprFree", "No audio captured. Check your microphone.");
                                 }
                                 Ok(samples) => {
@@ -190,9 +197,11 @@ fn run() -> Result<()> {
                                                 log::error!("injection failed: {e:#}");
                                                 show_notification("WisprFree", &format!("Text injection failed: {e}"));
                                             }
+                                            orch_overlay.set_state(overlay::OverlayState::Done);
                                         }
                                         Err(e) => {
                                             log::error!("transcription failed: {e:#}");
+                                            orch_overlay.set_state(overlay::OverlayState::Hidden);
                                             show_notification("WisprFree", &format!("Transcription failed: {e}"));
                                         }
                                     }
