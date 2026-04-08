@@ -23,6 +23,7 @@
 //! ```
 
 mod audio;
+mod autostart;
 mod config;
 mod dictionary;
 mod hotkey;
@@ -247,6 +248,10 @@ fn run() -> Result<()> {
                             let _ = std::process::Command::new("explorer")
                                 .arg(dir.as_os_str())
                                 .spawn();
+                        }
+                        Ok(tray::TrayCommand::ToggleAutostart) => {
+                            let new_state = autostart::toggle();
+                            log::info!("autostart toggled → {}", if new_state { "enabled" } else { "disabled" });
                         }
                         Ok(tray::TrayCommand::About) => {
                             let msg = format!(
