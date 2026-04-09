@@ -87,11 +87,31 @@ fn handle_request(mut stream: TcpStream) -> anyhow::Result<()> {
     Ok(())
 }
 
-/// Open the dashboard in the user's default browser.
+/// Open the dashboard as a standalone app window (no browser chrome).
+/// Tries Edge --app mode first (looks like a native app), falls back to default browser.
 pub fn open_in_browser() {
+    let url = format!("http://localhost:{PORT}");
+
+    // Try Microsoft Edge in app mode (standalone window, no tabs/address bar)
+    let edge_paths = [
+        r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+        r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
+    ];
+
+    for edge in &edge_paths {
+        if std::path::Path::new(edge).exists() {
+            let _ = std::process::Command::new(edge)
+                .args(["--app", &url, "--new-window"])
+                .creation_flags(0x08000000)
+                .spawn();
+            return;
+        }
+    }
+
+    // Fallback: default browser
     let _ = std::process::Command::new("cmd")
-        .args(["/C", &format!("start http://localhost:{PORT}")])
-        .creation_flags(0x08000000) // CREATE_NO_WINDOW
+        .args(["/C", &format!("start {url}")])
+        .creation_flags(0x08000000)
         .spawn();
 }
 

@@ -32,6 +32,7 @@ mod hotkey;
 mod overlay;
 mod paster;
 mod punctuation;
+mod shortcut;
 mod snippets;
 mod transcriber;
 mod tray;
@@ -95,6 +96,9 @@ fn run() -> Result<()> {
         .init();
 
     log::info!("WisprFree v{} starting", env!("CARGO_PKG_VERSION"));
+
+    // ── Create Start Menu shortcut (so users can search "WisprFree") ──
+    shortcut::ensure_shortcut();
 
     // ── Resolve model path & load Whisper ─────────────────────────────
     let model_path = config::resolve_model_path(&cfg.whisper.model_path);
