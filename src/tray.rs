@@ -16,6 +16,7 @@ use tray_icon::{
 pub enum TrayCommand {
     ReloadConfig,
     OpenConfigFolder,
+    OpenDashboard,
     ToggleAutostart,
     About,
     Quit,
@@ -25,6 +26,7 @@ pub struct Tray {
     _icon: TrayIcon,
     menu_reload_id: muda::MenuId,
     menu_open_id: muda::MenuId,
+    menu_dashboard_id: muda::MenuId,
     menu_autostart_id: muda::MenuId,
     menu_about_id: muda::MenuId,
     menu_quit_id: muda::MenuId,
@@ -40,6 +42,7 @@ impl Tray {
 
         let item_reload = MenuItem::new("Reload config", true, None);
         let item_open = MenuItem::new("Open config folder", true, None);
+        let item_dashboard = MenuItem::new("Open Dashboard", true, None);
         let autostart_enabled = crate::autostart::is_enabled();
         let item_autostart = CheckMenuItem::new("Start with Windows", true, autostart_enabled, None);
         let item_about = MenuItem::new("About WisprFree", true, None);
@@ -47,6 +50,7 @@ impl Tray {
 
         menu.append(&item_reload)?;
         menu.append(&item_open)?;
+        menu.append(&item_dashboard)?;
         menu.append(&item_autostart)?;
         menu.append(&PredefinedMenuItem::separator())?;
         menu.append(&item_about)?;
@@ -62,6 +66,7 @@ impl Tray {
 
         let reload_id = item_reload.id().clone();
         let open_id = item_open.id().clone();
+        let dashboard_id = item_dashboard.id().clone();
         let autostart_id = item_autostart.id().clone();
         let about_id = item_about.id().clone();
         let quit_id = item_quit.id().clone();
@@ -70,6 +75,7 @@ impl Tray {
         {
             let reload_id2 = reload_id.clone();
             let open_id2 = open_id.clone();
+            let dashboard_id2 = dashboard_id.clone();
             let autostart_id2 = autostart_id.clone();
             let about_id2 = about_id.clone();
             let quit_id2 = quit_id.clone();
@@ -81,6 +87,8 @@ impl Tray {
                             Some(TrayCommand::ReloadConfig)
                         } else if event.id == &open_id2 {
                             Some(TrayCommand::OpenConfigFolder)
+                        } else if event.id == &dashboard_id2 {
+                            Some(TrayCommand::OpenDashboard)
                         } else if event.id == &autostart_id2 {
                             // Toggle the checkmark - CheckMenuItem auto-toggles its visual state
                             Some(TrayCommand::ToggleAutostart)
@@ -103,6 +111,7 @@ impl Tray {
             _icon: tray,
             menu_reload_id: reload_id,
             menu_open_id: open_id,
+            menu_dashboard_id: dashboard_id,
             menu_autostart_id: autostart_id,
             menu_about_id: about_id,
             menu_quit_id: quit_id,

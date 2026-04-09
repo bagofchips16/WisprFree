@@ -25,7 +25,9 @@
 mod audio;
 mod autostart;
 mod config;
+mod dashboard;
 mod dictionary;
+mod history;
 mod hotkey;
 mod overlay;
 mod paster;
@@ -140,6 +142,9 @@ fn run() -> Result<()> {
     let orch_transcriber = Arc::clone(&transcriber);
     let orch_overlay = overlay::Overlay::new().context("failed to create overlay")?;
 
+    // Start the dashboard HTTP server in the background
+    dashboard::start();
+
     // Show "Ready" notification so the user knows the app has started
     orch_overlay.set_state(overlay::OverlayState::Ready);
 
@@ -206,6 +211,12 @@ fn run() -> Result<()> {
                                                 log::error!("injection failed: {e:#}");
                                                 show_notification("WisprFree", &format!("Text injection failed: {e}"));
                                             }
+
+                                            // Log to history for dashboard analytics
+                                            if let Err(e) = history::append(&text, duration, 0.0) {
+                                                log::warn!("history log failed: {e:#}");
+                                            }
+
                                             orch_overlay.set_state(overlay::OverlayState::Done);
                                         }
                                         Err(e) => {
@@ -248,6 +259,9 @@ fn run() -> Result<()> {
                             let _ = std::process::Command::new("explorer")
                                 .arg(dir.as_os_str())
                                 .spawn();
+                        }
+                        Ok(tray::TrayCommand::OpenDashboard) => {
+                            dashboard::open_in_browser();
                         }
                         Ok(tray::TrayCommand::ToggleAutostart) => {
                             let new_state = autostart::toggle();
