@@ -407,30 +407,58 @@ fn single_instance_lock() -> Result<windows::Win32::Foundation::HANDLE> {
 /// Kill any other running wisprfree.exe processes (but not ourselves).
 fn kill_old_instance() {
     use std::os::windows::process::CommandExt;
+    use windows::Win32::System::Threading::{
+        OpenProcess, TerminateProcess, PROCESS_TERMINATE,
+    };
+    use windows::Win32::System::Diagnostics::ToolHelp::{
+        CreateToolhelp32Snapshot, Process32FirstW, Process32NextW,
+        PROCESSENTRY32W, TH32CS_SNAPPROCESS,
+    };
+    use windows::Win32::Foundation::CloseHandle;
+
     let our_pid = std::process::id();
 
-    // Find all wisprfree.exe PIDs, then kill each one except ours
-    let output = std::process::Command::new("wmic")
-        .args(["process", "where", "name='wisprfree.exe'", "get", "ProcessId", "/format:list"])
-        .creation_flags(0x08000000)
-        .output();
+    let snapshot = unsafe { CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0) };
+    let snapshot = match snapshot {
+        Ok(h) => h,
+        Err(e) => {
+            log::error!("CreateToolhelp32Snapshot failed: {e}");
+            // Fallback: try taskkill directly
+            let _ = std::process::Command::new("taskkill")
+                .args(["/F", "/IM", "wisprfree.exe"])
+                .creation_flags(0x08000000)
+                .output();
+            std::thread::sleep(std::time::Duration::from_millis(500));
+            return;
+        }
+    };
 
-    if let Ok(out) = output {
-        let text = String::from_utf8_lossy(&out.stdout);
-        for line in text.lines() {
-            if let Some(pid_str) = line.strip_prefix("ProcessId=") {
-                if let Ok(pid) = pid_str.trim().parse::<u32>() {
-                    if pid != our_pid {
-                        log::info!("killing old wisprfree pid={}", pid);
-                        let _ = std::process::Command::new("taskkill")
-                            .args(["/F", "/PID", &pid.to_string()])
-                            .creation_flags(0x08000000)
-                            .output();
-                    }
-                }
+    let mut entry = PROCESSENTRY32W {
+        dwSize: std::mem::size_of::<PROCESSENTRY32W>() as u32,
+        ..Default::default()
+    };
+
+    let mut found = unsafe { Process32FirstW(snapshot, &mut entry) }.is_ok();
+    while found {
+        let exe_name: String = entry
+            .szExeFile
+            .iter()
+            .take_while(|&&c| c != 0)
+            .map(|&c| char::from(c as u8))
+            .collect();
+
+        if exe_name.eq_ignore_ascii_case("wisprfree.exe") && entry.th32ProcessID != our_pid {
+            log::info!("killing old wisprfree pid={}", entry.th32ProcessID);
+            if let Ok(proc) =
+                unsafe { OpenProcess(PROCESS_TERMINATE, false, entry.th32ProcessID) }
+            {
+                let _ = unsafe { TerminateProcess(proc, 1) };
+                let _ = unsafe { CloseHandle(proc) };
             }
         }
+        found = unsafe { Process32NextW(snapshot, &mut entry) }.is_ok();
     }
+    let _ = unsafe { CloseHandle(snapshot) };
 
     std::thread::sleep(std::time::Duration::from_millis(500));
     log::info!("old instance cleanup done (our pid={})", our_pid);
