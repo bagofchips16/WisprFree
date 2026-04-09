@@ -100,8 +100,15 @@ pub fn open_in_browser() {
 
     for edge in &edge_paths {
         if std::path::Path::new(edge).exists() {
+            // Use a dedicated user-data-dir so Edge opens a true app window
+            // even if a normal Edge browser session is already running
+            let app_data = std::env::var("LOCALAPPDATA").unwrap_or_default();
+            let user_dir = std::path::PathBuf::from(app_data).join("WisprFree\\EdgeApp");
             let _ = std::process::Command::new(edge)
-                .args(["--app", &url, "--new-window"])
+                .arg(format!("--app={url}"))
+                .arg(format!("--user-data-dir={}", user_dir.display()))
+                .arg("--no-first-run")
+                .arg("--disable-default-apps")
                 .creation_flags(0x08000000)
                 .spawn();
             return;
