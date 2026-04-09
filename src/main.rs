@@ -142,8 +142,13 @@ fn run() -> Result<()> {
     let orch_transcriber = Arc::clone(&transcriber);
     let orch_overlay = overlay::Overlay::new().context("failed to create overlay")?;
 
-    // Start the dashboard HTTP server in the background
+    // Start the dashboard HTTP server in the background and open it
     dashboard::start();
+    // Give the server a moment to bind, then open in browser
+    std::thread::spawn(|| {
+        std::thread::sleep(std::time::Duration::from_millis(500));
+        dashboard::open_in_browser();
+    });
 
     // Show "Ready" notification so the user knows the app has started
     orch_overlay.set_state(overlay::OverlayState::Ready);
