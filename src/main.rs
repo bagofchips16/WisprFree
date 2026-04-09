@@ -368,9 +368,13 @@ fn single_instance_lock() -> Result<windows::Win32::Foundation::HANDLE> {
 
         // IDYES = 6
         if result.0 == 6 {
-            // Kill the old instance and retry the mutex
+            // Close our handle first — otherwise it keeps the mutex alive
+            // even after the old process is killed
+            unsafe { windows::Win32::Foundation::CloseHandle(handle) };
+
+            // Kill the old instance and wait for it to release
             kill_old_instance();
-            std::thread::sleep(std::time::Duration::from_millis(1500));
+            std::thread::sleep(std::time::Duration::from_millis(2000));
 
             // Try acquiring the mutex again
             let handle = unsafe {
